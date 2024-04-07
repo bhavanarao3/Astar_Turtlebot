@@ -5,6 +5,7 @@ import cv2
 import math
 import time
 import heapq
+import sys
 
 # Node class
 class createNode :
@@ -53,7 +54,7 @@ blue = (255, 0, 0)
 #Robot Parameters
 robot_radius = 38
 wheel_distance = 140
-dt = 0.1
+dt = 0.25
 
 clearance = int(input("Enter clearance: "))
 
@@ -315,18 +316,19 @@ def a_star(start_position, end_position, start_orientation):
                         visited.add(new_position)
                         closed_nodes.add(new_position)
 
-                        if iteration_count % 3000 == 0:
+                        if iteration_count % 8000 == 0:
                             resized_screen = cv2.resize(screen, (1800, 600))
                             flip_screen = cv2.flip(resized_screen, 0)
                             cv2.imshow("exploration", resized_screen)
                             cv2.waitKey(1)
+                            draw_exploration(new_node)
 
-                        draw_exploration(new_node)
                     else:
                         if new_position not in visited or visited[new_position].total_cost > new_node.total_cost:
                             heapq.heappush(open_nodes, (new_node.total_cost, new_node))
                             visited.add(new_position)  # Add new_position to visited set
 
+    return None, None
 
 # Draw the optimal path
 def draw_path(path):
@@ -355,9 +357,14 @@ def get_velocity(path):
 
 # Main function
 if __name__ == "__main__":
+    start = time.time()
     draw_scene(clearance)
     print("Start search")
     path, orientation = a_star(initial, final, initial_orientation)
+
+    if path is None:
+        print("Path not found")
+        sys.exit()  # Terminate the program
 
     velocities = get_velocity(path)
 
@@ -370,27 +377,18 @@ if __name__ == "__main__":
 
     # Create a VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter('exploration_video.avi', fourcc, 20.0, (screen.shape[1], screen.shape[0]))
+    out = cv2.VideoWriter('exploration_video.avi', fourcc, 40.0, (screen.shape[1], screen.shape[0]))
 
-    # Iterate through the frames and write to video
+
+    # Iterate through frames in batches and write to video
     for frame in range(len(screen)):
         out.write(screen[frame])
 
     out.release()  # Release the VideoWriter object
 
-    # Read and display the saved video
-    cap = cv2.VideoCapture('exploration_video.avi')
-
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        cv2.imshow('Exploration Video', frame)
-        if cv2.waitKey(25) & 0xFF == ord('q'):  # Press 'q' to quit
-            break
-        time.sleep(10)
-
-    cap.release()
-    cv2.destroyAllWindows()
-
+    end = time.time()
+    time = (end-start)/60
+    print("Time in mins: ", time)
     display_image()
+    sys.exit()
+
